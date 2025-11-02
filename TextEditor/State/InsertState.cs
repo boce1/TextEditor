@@ -19,14 +19,10 @@ namespace TextEditor.State
 
         public void Type(string input)
         {
-            //if(_textEditor.CaretPosition <= _textEditor.Text.Length)
-            //{
-                // Split text into two parts
-                string before = _textEditor.Text.Substring(0, _textEditor.CaretPosition); // to the caret
-                string after = _textEditor.Text.Substring(_textEditor.CaretPosition); // rest of text
-                _textEditor.Text = before + input + after;
-                _textEditor.CaretPosition++;
-            //}
+            string before = _textEditor.Text.Substring(0, _textEditor.CaretPosition); // to the caret
+            string after = _textEditor.Text.Substring(_textEditor.CaretPosition); // rest of text
+            _textEditor.Text = before + input + after;
+            _textEditor.CaretPosition++;
         }
 
         public void Delete()

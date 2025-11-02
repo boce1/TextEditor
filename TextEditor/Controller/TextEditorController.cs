@@ -34,6 +34,9 @@ namespace TextEditor.Controler
             _command = new AddTextCommand(_model, _model.Text);
             _editorBox.Focus();
         }
+
+        /*--------------------------------------------------*/
+        /*Keyboard events*/
         // Handles regular text characters (letters, numbers, symbols)
         public void EditorBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
@@ -124,7 +127,7 @@ namespace TextEditor.Controler
             {
                 switch (e.Key)
                 {
-                    case Key.C:
+                    case Key.C: // ctrl + C
                         e.Handled = true; // Disable default copy
                         _command = new CopyCommand(_model);
                         _command.Execute();
@@ -134,7 +137,7 @@ namespace TextEditor.Controler
                         }
                         break;
 
-                    case Key.X:
+                    case Key.X: // ctrl + X
                         e.Handled = true; // Disable default cut
                         _command = new CutCommand(_model);
                         _command.Execute();
@@ -147,7 +150,7 @@ namespace TextEditor.Controler
                         }
                         break;
 
-                    case Key.V:
+                    case Key.V: // ctrl + V
                         e.Handled = true; // Disable default paste
                         _command = new PasteCommand(_model);
                         _command.Execute();
@@ -160,9 +163,14 @@ namespace TextEditor.Controler
                         }
                         UpdateStatusBar();
                         break;
+                    case Key.Z: // ctrl + Z
+                        e.Handled = true; // Disable default paste
+                        // add undo command
+                        break;
 
                     default:
-                        // Other Ctrl+key combos can go here if needed
+                        // Other Ctrl+key combos disabled
+                        e.Handled = true;
                         break;
                 }
 
@@ -175,7 +183,7 @@ namespace TextEditor.Controler
             }
             if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
             {
-                if (e.Key == Key.Left || e.Key == Key.Right)
+                if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Down || e.Key == Key.Up) // check if these keys are pressed, because pressing other keys move the caret
                 {
                     if (_model.getState().GetType() != typeof(HighlightState))
                     {
@@ -197,14 +205,16 @@ namespace TextEditor.Controler
                             _model.SelectionEnd = _editorBox.CaretIndex;
                             HighlighPosition = _model.SelectionStart;
                             break;
+                        case Key.Down:
+                        case Key.Up:
+                            e.Handled = true;
+                            UpdateCaretVertically(e.Key == Key.Up);
+                            _model.SelectionEnd = _editorBox.CaretIndex;
+                            HighlighPosition = _model.SelectionStart;
+                            break;
                     }
                     
                     UpdateStatusBar();
-                   
-                    
-                    UpdateEditorBox();
-                    //_editorBox.SelectionStart = Math.Min(_model.SelectionStart, _model.SelectionEnd);
-                    //_editorBox.SelectionLength = Math.Abs(_model.SelectionEnd - _model.SelectionStart);
                     e.Handled = true;
                     return;
                 }
@@ -221,6 +231,11 @@ namespace TextEditor.Controler
                     UpdateCaretAddedChar(_editorBox.CaretIndex);
                     UpdateStatusBar();
                     break;
+                case Key.Up:
+                case Key.Down:
+                    e.Handled = true;
+                    UpdateCaretVertically(e.Key == Key.Up);
+                    break;
             }
             if (e.Key == Key.Left || e.Key == Key.Right)
             {
@@ -234,18 +249,16 @@ namespace TextEditor.Controler
                 e.Handled = true;
                 return;
             }
-            if (e.Key == Key.Up || e.Key == Key.Down)
-            {
-                e.Handled = true;
-            }
-
         }
 
+
+
+        /*--------------------------------------------------*/
+        /*Mouse events*/
         // When mouse is pressed — begin selection
         public void EditorBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-
-            if(_model.getState() is HighlightState) // if user choose not to highlight but to move the caret
+            if (_model.getState() is HighlightState) // if user choose not to highlight but to move the caret
             {
                 _model.changeState(new InsertState());
                 UpdateStatusBar();
@@ -303,8 +316,13 @@ namespace TextEditor.Controler
                 //_model.changeState(new InsertState());
                 UpdateStatusBar();
             }
+            e.Handled = true;
         }
+        /*--------------------------------------------------*/
 
+
+        /*--------------------------------------------------*/
+        /*Button events*/
         public void InsertButton_Click(object sender, RoutedEventArgs e)
         {
             _model.changeState(new InsertState());
@@ -325,7 +343,11 @@ namespace TextEditor.Controler
             UpdateStatusBar();
             _editorBox.Focus();
         }
+        /*--------------------------------------------------*/
 
+
+        /*--------------------------------------------------*/
+        /*Update view and caret functions*/
         private void UpdateEditorBox()
         { 
             _editorBox.Text = _model.Text;
@@ -353,7 +375,28 @@ namespace TextEditor.Controler
                 UpdateStatusBar();
             }
         }
+        private void UpdateCaretVertically(bool moveUp)
+        {
+            int currentLine = _editorBox.GetLineIndexFromCharacterIndex(_editorBox.CaretIndex);
+            int targetLine = moveUp ? currentLine - 1 : currentLine + 1;
 
+            // Ensure it stays within range
+            if (targetLine < 0 || targetLine >= _editorBox.LineCount)
+                return;
+
+            // How many characters from the start of this line to where the caret currently is
+            int column = _editorBox.CaretIndex - _editorBox.GetCharacterIndexFromLineIndex(currentLine);
+
+            // Move to the same column on the target line (clamped to its length)
+            int targetLineStart = _editorBox.GetCharacterIndexFromLineIndex(targetLine);
+            int targetLineLength = _editorBox.GetLineLength(targetLine);
+            int newIndex = targetLineStart + Math.Min(column, targetLineLength);
+
+            // Update model + view
+            _editorBox.CaretIndex = newIndex;
+            UpdateCaretPossition();
+            UpdateStatusBar();
+        }
         private void UpdateStatusBar()
         {
             Brush textColor = Brushes.Black;
@@ -373,5 +416,6 @@ namespace TextEditor.Controler
             _stateLabel.Foreground = textColor;
             _caretLabel.Content = $"Caret: {_editorBox.CaretIndex}";
         }
+        /*--------------------------------------------------*/
     }
 }
