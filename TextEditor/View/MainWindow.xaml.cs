@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using TextEditor.Controler;
+using TextEditor.Memento;
 
 namespace TextEditor
 {

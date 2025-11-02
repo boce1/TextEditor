@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TextEditor.Memento;
 using TextEditor.State;
 
 namespace TextEditor.Model
@@ -62,5 +63,18 @@ namespace TextEditor.Model
             _state.Cut();
         }
 
+        public TextEditorMemento Save()
+        {
+            return new TextEditorMemento(Text, CaretPosition, SelectionStart, SelectionEnd, _state);
+        }
+
+        public void Restore(TextEditorMemento memento)
+        {
+            Text = memento.Text;
+            CaretPosition = memento.CaretPosition;
+            SelectionStart = memento.SelectionStart;
+            SelectionEnd = memento.SelectionEnd;
+            _state = memento.State;
+        }
     }
 }

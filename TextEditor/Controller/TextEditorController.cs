@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using TextEditor.Command;
+using TextEditor.Memento;
 using TextEditor.Model;
 using TextEditor.State;
 using ICommand = TextEditor.Command.ICommand;
@@ -23,6 +24,8 @@ namespace TextEditor.Controler
         private bool isSelecting = false;
         private Label _stateLabel;
         private Label _caretLabel;
+        private HistoryManager _historyManager;
+        private bool areLeftRightKeysPressed = false;
 
         private int HighlighPosition;
         public TextEditorController(TextBox editorBox, Label stateLabel, Label caretLabel)
@@ -31,7 +34,8 @@ namespace TextEditor.Controler
             _editorBox = editorBox;
             _stateLabel = stateLabel;
             _caretLabel = caretLabel;
-            _command = new AddTextCommand(_model, _model.Text);
+            _historyManager = new HistoryManager();
+            _command = new AddTextCommand(_model, _model.Text, _historyManager);
             _editorBox.Focus();
         }
 
@@ -42,7 +46,7 @@ namespace TextEditor.Controler
         {
             int caret = _editorBox.CaretIndex;
             UpdateCaretPossition();
-            _command = new AddTextCommand(_model, e.Text);
+            _command = new AddTextCommand(_model, e.Text, _historyManager);
             _command.Execute();
             UpdateEditorBox();
             e.Handled = true;
@@ -65,28 +69,163 @@ namespace TextEditor.Controler
         {
             int caret = _editorBox.CaretIndex;
             UpdateCaretPossition();
-            // To do add swich and return at the end 
+            
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                HandleCtrlShortcuts(e, caret);
+            }
+            if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+            {
+                HandleShiftControls(e);
+            }
+            HandleSpecialKeys(e, caret);
+        }
+
+        private void HandleShiftControls(KeyEventArgs e)
+        {
+            if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Down || e.Key == Key.Up) // check if these keys are pressed, because pressing other keys move the caret
+            {
+                if (_model.getState().GetType() != typeof(HighlightState))
+                {
+                    _model.SelectionStart = _model.SelectionEnd = _editorBox.CaretIndex;
+                    _model.changeState(new HighlightState());
+                    HighlighPosition = _editorBox.CaretIndex;
+                }
+
+                switch (e.Key)
+                {
+                    case Key.Left:
+                        UpdateCaretDeletedChar(_editorBox.CaretIndex);
+                        _model.SelectionEnd = _editorBox.CaretIndex;
+                        HighlighPosition = _model.SelectionEnd;
+                        areLeftRightKeysPressed = true;
+                        break;
+                    case Key.Right:
+                        UpdateCaretAddedChar(_editorBox.CaretIndex);
+                        _model.SelectionEnd = _editorBox.CaretIndex;
+                        HighlighPosition = _model.SelectionStart;
+                        areLeftRightKeysPressed = true;
+                        break;
+                    case Key.Down:
+                    case Key.Up:
+                        e.Handled = true;
+                        UpdateCaretVertically(e.Key == Key.Up);
+                        _model.SelectionEnd = _editorBox.CaretIndex;
+                        HighlighPosition = _model.SelectionStart;
+                        break;
+                }
+
+                e.Handled = true;
+                return;
+            }
+        }
+
+        private void HandleCtrlShortcuts(KeyEventArgs e, int caret)
+        {
+            switch (e.Key)
+            {
+                case Key.C: // ctrl + C
+                    e.Handled = true; // Disable default copy
+                    _command = new CopyCommand(_model, _historyManager);
+                    _command.Execute();
+                    if (_model.getState() is HighlightState)
+                    {
+                        _model.changeState(new InsertState());
+                    }
+                    break;
+
+                case Key.X: // ctrl + X
+                    e.Handled = true; // Disable default cut
+                    _command = new CutCommand(_model, _historyManager);
+                    _command.Execute();
+                    UpdateEditorBox();
+                    _editorBox.CaretIndex = caret;
+                    UpdateCaretPossition();
+                    if (_model.getState() is HighlightState)
+                    {
+                        _model.changeState(new InsertState());
+                    }
+                    break;
+
+                case Key.V: // ctrl + V
+                    e.Handled = true; // Disable default paste
+                    _command = new PasteCommand(_model, _historyManager);
+                    _command.Execute();
+                    UpdateEditorBox();
+                    _editorBox.CaretIndex = caret + Clipboard.GetText().Length;
+                    UpdateCaretPossition();
+                    if (_model.getState() is HighlightState)
+                    {
+                        _model.changeState(new InsertState());
+                    }
+                    UpdateStatusBar();
+                    break;
+                case Key.Z: // ctrl + Z
+                    e.Handled = true; // Disable default undo
+                    _command.Undo();
+                    UpdateEditorBox();
+                    _editorBox.CaretIndex = _model.CaretPosition;
+                    isSelecting = false;
+                    UpdateStatusBar();
+                    break;
+                case Key.Y: // ctrl + Y
+                    e.Handled = true; // Disable default redo
+                    _command.Redo();
+                    UpdateEditorBox();
+                    _editorBox.CaretIndex = _model.CaretPosition;
+                    isSelecting = false;
+                    UpdateStatusBar();
+                    break;
+                case Key.R: // ctrl + R
+                    e.Handled = true; // Disable default
+                    _model.changeState(new ReadOnlyState());
+                    UpdateStatusBar();
+                    _editorBox.Focus();
+                    break;
+                case Key.I: // ctrl + I
+                    e.Handled = true; // Disable default
+                    _model.changeState(new InsertState());
+                    UpdateStatusBar();
+                    _editorBox.Focus();
+                    break;
+                case Key.O: // ctrl + O
+                    e.Handled = true; // Disable default
+                    _model.changeState(new OverwriteState());
+                    UpdateStatusBar();
+                    _editorBox.Focus();
+                    break;
+                default:
+                    // Other Ctrl+key combos disabled
+                    e.Handled = true;
+                    break;
+            }
+            return;
+        }
+
+        private void HandleSpecialKeys(KeyEventArgs e, int caret)
+        {
             switch (e.Key)
             {
                 case Key.Back:
-                    _command = new DeleteTextCommand(_model, _editorBox.CaretIndex);
+                    _command = new DeleteTextCommand(_model, _historyManager);
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
-                    if(_model.getState() is HighlightState)
+                    if (_model.getState() is HighlightState)
                     {
                         _editorBox.CaretIndex = HighlighPosition;
                         UpdateCaretPossition();
                         UpdateStatusBar();
                         _model.changeState(new InsertState());
-                    } else
+                    }
+                    else
                     {
                         UpdateCaretDeletedChar(caret);
                     }
-                    return;
+                    break;
 
                 case Key.Enter:
-                    _command = new AddTextCommand(_model, "\n");
+                    _command = new AddTextCommand(_model, "\n", _historyManager);
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
@@ -101,11 +240,11 @@ namespace TextEditor.Controler
                     {
                         UpdateCaretAddedChar(caret);
                     }
-                    
-                    return;
+
+                    break;
 
                 case Key.Space:
-                    _command = new AddTextCommand(_model, " ");
+                    _command = new AddTextCommand(_model, " ", _historyManager);
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
@@ -119,117 +258,42 @@ namespace TextEditor.Controler
                     {
                         UpdateCaretAddedChar(caret);
                     }
-                    return;
-            }
-
-            // Disable Default Copy and Paste commands and Handle them in controller
-            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-            {
-                switch (e.Key)
-                {
-                    case Key.C: // ctrl + C
-                        e.Handled = true; // Disable default copy
-                        _command = new CopyCommand(_model);
-                        _command.Execute();
-                        if(_model.getState() is HighlightState)
-                        {
-                            _model.changeState(new InsertState());
-                        }
-                        break;
-
-                    case Key.X: // ctrl + X
-                        e.Handled = true; // Disable default cut
-                        _command = new CutCommand(_model);
+                    break;
+                case Key.Delete:
+                    e.Handled = true;
+                    if (_model.CaretPosition < _model.Text.Length)
+                    {
+                        UpdateCaretAddedChar(caret);
+                        _command = new DeleteTextCommand(_model, _historyManager);
                         _command.Execute();
                         UpdateEditorBox();
-                        _editorBox.CaretIndex = caret;
-                        UpdateCaretPossition();
                         if (_model.getState() is HighlightState)
                         {
+                            _editorBox.CaretIndex = HighlighPosition;
+                            UpdateCaretPossition();
+                            UpdateStatusBar();
                             _model.changeState(new InsertState());
                         }
-                        break;
-
-                    case Key.V: // ctrl + V
-                        e.Handled = true; // Disable default paste
-                        _command = new PasteCommand(_model);
-                        _command.Execute();
-                        UpdateEditorBox();
-                        _editorBox.CaretIndex = caret + Clipboard.GetText().Length;
-                        UpdateCaretPossition();
-                        if (_model.getState() is HighlightState)
+                        else
                         {
-                            _model.changeState(new InsertState());
+                            _editorBox.CaretIndex = caret;
+                            UpdateCaretPossition();
                         }
-                        UpdateStatusBar();
-                        break;
-                    case Key.Z: // ctrl + Z
-                        e.Handled = true; // Disable default paste
-                        // add undo command
-                        break;
-
-                    default:
-                        // Other Ctrl+key combos disabled
-                        e.Handled = true;
-                        break;
-                }
-
-                // Disable Ctrl + Arrow keys
-                if (e.Key == Key.Up || e.Key == Key.Down)
-                {
-                    e.Handled = true;
-                }
-                return;
-            }
-            if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
-            {
-                if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Down || e.Key == Key.Up) // check if these keys are pressed, because pressing other keys move the caret
-                {
-                    if (_model.getState().GetType() != typeof(HighlightState))
-                    {
-                        _model.SelectionStart = _model.SelectionEnd = _editorBox.CaretIndex;
-                        _model.changeState(new HighlightState());
-                        HighlighPosition = _editorBox.CaretIndex;
                     }
-
-                    switch (e.Key)
-                    {
-                        case Key.Left:
-                            UpdateCaretDeletedChar(_editorBox.CaretIndex);
-                            _model.SelectionEnd = _editorBox.CaretIndex;
-                            HighlighPosition = _model.SelectionEnd;
-                            break;
-
-                        case Key.Right:
-                            UpdateCaretAddedChar(_editorBox.CaretIndex);
-                            _model.SelectionEnd = _editorBox.CaretIndex;
-                            HighlighPosition = _model.SelectionStart;
-                            break;
-                        case Key.Down:
-                        case Key.Up:
-                            e.Handled = true;
-                            UpdateCaretVertically(e.Key == Key.Up);
-                            _model.SelectionEnd = _editorBox.CaretIndex;
-                            HighlighPosition = _model.SelectionStart;
-                            break;
-                    }
-                    
-                    UpdateStatusBar();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // If user presses arrow without shift, clear selection
-            switch (e.Key) 
-            {
+                    break;
                 case Key.Left:
-                    UpdateCaretDeletedChar(_editorBox.CaretIndex);
-                    UpdateStatusBar();
+                    if(!areLeftRightKeysPressed)
+                    {
+                        UpdateCaretDeletedChar(_editorBox.CaretIndex);
+                        UpdateStatusBar();
+                    }
                     break;
                 case Key.Right:
-                    UpdateCaretAddedChar(_editorBox.CaretIndex);
-                    UpdateStatusBar();
+                    if(!areLeftRightKeysPressed)
+                    {
+                        UpdateCaretAddedChar(_editorBox.CaretIndex);
+                        UpdateStatusBar();
+                    }
                     break;
                 case Key.Up:
                 case Key.Down:
@@ -237,11 +301,11 @@ namespace TextEditor.Controler
                     UpdateCaretVertically(e.Key == Key.Up);
                     break;
             }
-            if (e.Key == Key.Left || e.Key == Key.Right)
+            if ((e.Key == Key.Left || e.Key == Key.Right) && !areLeftRightKeysPressed)
             {
                 _model.SelectionStart = _model.SelectionEnd = _model.CaretPosition;
                 //if((_model.getState() is not InsertState) && (_model.getState() is not OverwriteState))
-                if(_model.getState() is HighlightState)
+                if (_model.getState() is HighlightState)
                 {
                     _model.changeState(new InsertState());
                     UpdateStatusBar();
@@ -249,9 +313,8 @@ namespace TextEditor.Controler
                 e.Handled = true;
                 return;
             }
+            areLeftRightKeysPressed = false;
         }
-
-
 
         /*--------------------------------------------------*/
         /*Mouse events*/
@@ -377,6 +440,9 @@ namespace TextEditor.Controler
         }
         private void UpdateCaretVertically(bool moveUp)
         {
+            int oldCaret = _editorBox.CaretIndex;
+            _editorBox.Text += " ";
+            _editorBox.CaretIndex = oldCaret;
             int currentLine = _editorBox.GetLineIndexFromCharacterIndex(_editorBox.CaretIndex);
             int targetLine = moveUp ? currentLine - 1 : currentLine + 1;
 
@@ -389,13 +455,18 @@ namespace TextEditor.Controler
 
             // Move to the same column on the target line (clamped to its length)
             int targetLineStart = _editorBox.GetCharacterIndexFromLineIndex(targetLine);
-            int targetLineLength = _editorBox.GetLineLength(targetLine);
+            int targetLineLength = _editorBox.GetLineLength(targetLine) - 1;   
+           
             int newIndex = targetLineStart + Math.Min(column, targetLineLength);
 
             // Update model + view
+            UpdateEditorBox();
             _editorBox.CaretIndex = newIndex;
+            
+
             UpdateCaretPossition();
             UpdateStatusBar();
+
         }
         private void UpdateStatusBar()
         {
