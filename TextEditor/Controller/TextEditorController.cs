@@ -301,22 +301,13 @@ namespace TextEditor.Controler
                 UpdateStatusBar();
             }
 
-            // to be able to select the last char
-            //string[] lines = _editorBox.Text.Split('\n');
-            //for (int i = 0; i < lines.Length; i++)
-            //{
-            //    // Add a space only if the line has content and doesn't already end with one
-            //    if (!lines[i].EndsWith(" ") & lines[i] != "")
-            //    {
-            //        lines[i] += " ";
-            //    }
-            //}
-            //string newText = string.Join("\n", lines);
-            //_editorBox.Text = newText;
-            _editorBox.Text += " ";
+            //_editorBox.Text += " ";
 
             int clickPos = _editorBox.GetCharacterIndexFromPoint(e.GetPosition(_editorBox), true);
-            //_editorBox.Text = _model.Text; // remove extra space at the end again
+            if (clickPos >= 0 && clickPos < _editorBox.Text.Length && _editorBox.Text[clickPos] != '\n')
+            {
+                clickPos++;
+            }
             HighlighPosition = clickPos;
 
             _model.SelectionStart = clickPos;
@@ -335,11 +326,21 @@ namespace TextEditor.Controler
             if (!isSelecting) return;
             _model.changeState(new HighlightState());
             int movePos = _editorBox.GetCharacterIndexFromPoint(e.GetPosition(_editorBox), true);
+            if (movePos >= 0 && movePos < _editorBox.Text.Length && _editorBox.Text[movePos] != '\n')
+            {
+                movePos++;
+            }
             HighlighPosition = Math.Min(movePos, HighlighPosition);
             if (movePos < 0) return;
 
             _model.SelectionEnd = movePos;
-
+            if(_model.SelectionStart > _model.SelectionEnd)
+            {
+                _model.SelectionEnd--;
+                HighlighPosition = Math.Max(0, _model.SelectionEnd);
+            }
+            _model.SelectionStart = Math.Min(_model.SelectionStart, _model.Text.Length);
+            _model.SelectionEnd = Math.Min(_model.SelectionEnd, _model.Text.Length);
 
             // Visually show selection in the TextBox
             _editorBox.SelectionStart = Math.Min(_model.SelectionStart, _model.SelectionEnd);
@@ -353,13 +354,7 @@ namespace TextEditor.Controler
         public void EditorBox_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             isSelecting = false;
-            int oldCaret = _editorBox.CaretIndex;
-
-            UpdateEditorBox(); // text in tex box is now without extra space at the end
-
-            _editorBox.CaretIndex = oldCaret;
-            UpdateCaretPossition();
-            _editorBox.SelectionStart = HighlighPosition;
+            _editorBox.SelectionStart = _editorBox.SelectionStart;
             _editorBox.SelectionLength = _model.SelectedText.Length;
 
             if (_model.getState() is not HighlightState) // if user choose not to highlight but to move the caret
@@ -381,6 +376,7 @@ namespace TextEditor.Controler
 
         private void UpdateCaretPossition()
         {
+            _editorBox.CaretIndex = Math.Min(_editorBox.CaretIndex, _editorBox.Text.Length);
             _model.CaretPosition = _editorBox.CaretIndex;
         }
 
