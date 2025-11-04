@@ -25,5 +25,6 @@ namespace TextEditor.Command
             if (previous != null)
                 textEditor.Restore(previous);
         }
+
     }
 }

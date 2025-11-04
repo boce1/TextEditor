@@ -300,13 +300,27 @@ namespace TextEditor.Controler
                 _model.changeState(new InsertState());
                 UpdateStatusBar();
             }
-            _editorBox.Text += " "; // to be able to select the last char
+
+            // to be able to select the last char
+            //string[] lines = _editorBox.Text.Split('\n');
+            //for (int i = 0; i < lines.Length; i++)
+            //{
+            //    // Add a space only if the line has content and doesn't already end with one
+            //    if (!lines[i].EndsWith(" ") & lines[i] != "")
+            //    {
+            //        lines[i] += " ";
+            //    }
+            //}
+            //string newText = string.Join("\n", lines);
+            //_editorBox.Text = newText;
+            _editorBox.Text += " ";
+
             int clickPos = _editorBox.GetCharacterIndexFromPoint(e.GetPosition(_editorBox), true);
+            //_editorBox.Text = _model.Text; // remove extra space at the end again
             HighlighPosition = clickPos;
 
             _model.SelectionStart = clickPos;
             _model.SelectionEnd = clickPos;
-            _model.CaretPosition = clickPos;
 
             isSelecting = true;
 
@@ -502,6 +516,24 @@ namespace TextEditor.Controler
         public void OverwriteMenu_Click(object sender, RoutedEventArgs e)
         {
             ChangeToOverwrite();
+        }
+
+        internal void UndoMenu_Click(object sender, RoutedEventArgs e)
+        {
+            _command = new UndoCommand(_model, _historyManager);
+            _command.Execute();
+            UpdateEditorBox();
+            UpdateStatusBar();
+            _editorBox.CaretIndex = _model.CaretPosition;
+        }
+
+        internal void RedoMenu_Click(object sender, RoutedEventArgs e)
+        {
+            _command = new RedoCommand(_model, _historyManager);
+            _command.Execute();
+            UpdateEditorBox();
+            UpdateStatusBar();
+            _editorBox.CaretIndex = _model.CaretPosition;
         }
         /*--------------------------------------------------*/
 

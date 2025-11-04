@@ -40,6 +40,9 @@ namespace TextEditor
             InsertMenu.Click += controller.InsertMenu_Click; 
             ReadOnlyMenu.Click += controller.ReadOnlyMenu_Click; 
             OverwriteMenu.Click += controller.OverwriteMenu_Click;
+
+            UndoMenu.Click += controller.UndoMenu_Click;
+            RedoMenu.Click += controller.RedoMenu_Click;
         }
 
         

@@ -37,6 +37,11 @@
                 <MenuItem x:Name="InsertMenu"    Header="Insert     Ctrl + I"/>
                 <MenuItem x:Name="OverwriteMenu" Header="Overwirte  Ctrl + O"/>
             </MenuItem>
+
+            <MenuItem Header="Controls">
+                <MenuItem x:Name="UndoMenu"  Header="Undo   Ctlr + Z"/>
+                <MenuItem x:Name="RedoMenu"  Header="Redo   Ctrl + Y"/>
+            </MenuItem>
         </Menu>
 
         <!-- TEXT EDITOR -->
