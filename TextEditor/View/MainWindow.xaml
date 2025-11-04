@@ -8,45 +8,72 @@
         Title="MainWindow" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Menu bar -->
             <RowDefinition Height="*"/>
+            <!-- Text editor -->
             <RowDefinition Height="Auto"/>
+            <!-- Mode buttons -->
             <RowDefinition Height="Auto"/>
+            <!-- Status bar -->
         </Grid.RowDefinitions>
 
-        <!-- The text is displayed here -->
-        <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="1" Padding="10">
+        <!-- FILE MENU -->
+        <Menu Grid.Row="0" FontFamily="Consolas">
+            <MenuItem Header="File">
+                <MenuItem x:Name="OpenFileMenu"   Header="Open"/>
+                <MenuItem x:Name="SaveFileMenu"   Header="Save     Ctlr + S"/>
+                <MenuItem x:Name="SaveAsFileMenu" Header="Save As"/>
+            </MenuItem>
+
+            <MenuItem Header="Edit">
+                <MenuItem x:Name="CopyMenu"  Header="Copy   Ctlr + C"/>
+                <MenuItem x:Name="PasteMenu" Header="Paste  Ctrl + V"/>
+                <MenuItem x:Name="CutMenu"   Header="Cut    Ctrl + X"/>
+            </MenuItem>
+
+            <MenuItem Header="State">
+                <MenuItem x:Name="ReadOnlyMenu"  Header="ReadOnly   Ctlr + R"/>
+                <MenuItem x:Name="InsertMenu"    Header="Insert     Ctrl + I"/>
+                <MenuItem x:Name="OverwriteMenu" Header="Overwirte  Ctrl + O"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- TEXT EDITOR -->
+        <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="1" Padding="10">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <TextBox
-                    Name="EditorBox"
-                    FontFamily="Consolas"
-                    FontSize="14"
-                    AcceptsReturn="True"
-                    TextWrapping="Wrap"
-                    BorderThickness="0"
-                    Background="Transparent"
-                    VerticalScrollBarVisibility="Auto"
-
-                    />
+                x:Name="EditorBox"
+                FontFamily="Consolas"
+                FontSize="14"
+                AcceptsReturn="True"
+                TextWrapping="Wrap"
+                BorderThickness="0"
+                Background="Transparent"
+                VerticalScrollBarVisibility="Auto"/>
             </ScrollViewer>
         </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0">
-            <Button Name="ReadOnlyButton" Content="ReadOnly" Margin="5"/>
-            <Button Name="InsertButton" Content="Insert" Margin="5"/>
-            <Button Name="OverwriteButton" Content="Overwrite" Margin="5"/>
-        </StackPanel>
-
-        <DockPanel Grid.Row="2" LastChildFill="False" Margin="5,5,5,5">
-            <Label Name="CaretPositionLabel"
-               Content="Caret: 0"
-               HorizontalAlignment="Right"
+        <!-- STATUS BAR -->
+        <DockPanel Grid.Row="3" LastChildFill="True" Margin="5,5,5,5" >
+            <Label x:Name="EditorStateLabel"
+               Content="State: Insert"
+               HorizontalAlignment="Left"
                Padding="5,0"
-               FontSize="12" />
-            <Label Name="EditorStateLabel"
-                Content="State: Insert"
-                HorizontalAlignment="Left"
+               FontSize="12" 
+               FontFamily="Consolas"/>
+            <Label x:Name="CaretPositionLabel"
+               Content="Caret: 0"
+               HorizontalAlignment="Left"
+               Padding="10,0"
+               FontSize="12"
+               FontFamily="Consolas"/>
+            <Label x:Name="FilePathLabel"
+                Content="File: Untitled"
+                HorizontalAlignment="Right"
                 Padding="5,0"
-                FontSize="12" />
+                FontSize="12"
+                FontFamily="Consolas"/>
         </DockPanel>
     </Grid>
 </Window>

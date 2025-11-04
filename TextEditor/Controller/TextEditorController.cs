@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,16 +27,18 @@ namespace TextEditor.Controler
         private bool isSelecting = false;
         private Label _stateLabel;
         private Label _caretLabel;
+        private Label _fileLabel;
         private HistoryManager _historyManager;
         private bool areLeftRightKeysPressed = false;
 
         private int HighlighPosition;
-        public TextEditorController(TextBox editorBox, Label stateLabel, Label caretLabel)
+        public TextEditorController(TextBox editorBox, Label stateLabel, Label caretLabel, Label fileLabel)
         {
             _model = new TextEditorModel(new InsertState());
             _editorBox = editorBox;
             _stateLabel = stateLabel;
             _caretLabel = caretLabel;
+            _fileLabel = fileLabel;
             _historyManager = new HistoryManager();
             _command = new AddTextCommand(_model, _model.Text, _historyManager);
             _editorBox.Focus();
@@ -69,7 +74,7 @@ namespace TextEditor.Controler
         {
             int caret = _editorBox.CaretIndex;
             UpdateCaretPossition();
-            
+
             if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 HandleCtrlShortcuts(e, caret);
@@ -126,73 +131,42 @@ namespace TextEditor.Controler
             {
                 case Key.C: // ctrl + C
                     e.Handled = true; // Disable default copy
-                    _command = new CopyCommand(_model, _historyManager);
-                    _command.Execute();
-                    if (_model.getState() is HighlightState)
-                    {
-                        _model.changeState(new InsertState());
-                    }
+                    Copy();
                     break;
 
                 case Key.X: // ctrl + X
                     e.Handled = true; // Disable default cut
-                    _command = new CutCommand(_model, _historyManager);
-                    _command.Execute();
-                    UpdateEditorBox();
-                    _editorBox.CaretIndex = caret;
-                    UpdateCaretPossition();
-                    if (_model.getState() is HighlightState)
-                    {
-                        _model.changeState(new InsertState());
-                    }
+                    Cut(caret);
                     break;
 
                 case Key.V: // ctrl + V
                     e.Handled = true; // Disable default paste
-                    _command = new PasteCommand(_model, _historyManager);
-                    _command.Execute();
-                    UpdateEditorBox();
-                    _editorBox.CaretIndex = caret + Clipboard.GetText().Length;
-                    UpdateCaretPossition();
-                    if (_model.getState() is HighlightState)
-                    {
-                        _model.changeState(new InsertState());
-                    }
-                    UpdateStatusBar();
+                    Paste(caret);
                     break;
                 case Key.Z: // ctrl + Z
                     e.Handled = true; // Disable default undo
-                    _command.Undo();
-                    UpdateEditorBox();
-                    _editorBox.CaretIndex = _model.CaretPosition;
-                    isSelecting = false;
-                    UpdateStatusBar();
+                    Undo();
                     break;
                 case Key.Y: // ctrl + Y
                     e.Handled = true; // Disable default redo
-                    _command.Redo();
-                    UpdateEditorBox();
-                    _editorBox.CaretIndex = _model.CaretPosition;
-                    isSelecting = false;
-                    UpdateStatusBar();
+                    Redo();
                     break;
                 case Key.R: // ctrl + R
                     e.Handled = true; // Disable default
-                    _model.changeState(new ReadOnlyState());
-                    UpdateStatusBar();
-                    _editorBox.Focus();
+                    ChangeToReadOnly();
                     break;
                 case Key.I: // ctrl + I
                     e.Handled = true; // Disable default
-                    _model.changeState(new InsertState());
-                    UpdateStatusBar();
-                    _editorBox.Focus();
+                    ChangeToInsert();
                     break;
                 case Key.O: // ctrl + O
                     e.Handled = true; // Disable default
-                    _model.changeState(new OverwriteState());
-                    UpdateStatusBar();
-                    _editorBox.Focus();
+                    ChangeToOverwrite();
+                    break;
+                case Key.S: // ctrl + S
+                    e.Handled = true; // Disable default
+                    _command = new SaveCommand(_model);
+                    _command.Execute();
                     break;
                 default:
                     // Other Ctrl+key combos disabled
@@ -282,14 +256,14 @@ namespace TextEditor.Controler
                     }
                     break;
                 case Key.Left:
-                    if(!areLeftRightKeysPressed)
+                    if (!areLeftRightKeysPressed)
                     {
                         UpdateCaretDeletedChar(_editorBox.CaretIndex);
                         UpdateStatusBar();
                     }
                     break;
                 case Key.Right:
-                    if(!areLeftRightKeysPressed)
+                    if (!areLeftRightKeysPressed)
                     {
                         UpdateCaretAddedChar(_editorBox.CaretIndex);
                         UpdateStatusBar();
@@ -352,7 +326,7 @@ namespace TextEditor.Controler
 
             _model.SelectionEnd = movePos;
 
-            
+
             // Visually show selection in the TextBox
             _editorBox.SelectionStart = Math.Min(_model.SelectionStart, _model.SelectionEnd);
             _editorBox.SelectionLength = Math.Abs(_model.SelectionEnd - _model.SelectionStart);
@@ -366,9 +340,9 @@ namespace TextEditor.Controler
         {
             isSelecting = false;
             int oldCaret = _editorBox.CaretIndex;
-            
+
             UpdateEditorBox(); // text in tex box is now without extra space at the end
-            
+
             _editorBox.CaretIndex = oldCaret;
             UpdateCaretPossition();
             _editorBox.SelectionStart = HighlighPosition;
@@ -383,36 +357,10 @@ namespace TextEditor.Controler
         }
         /*--------------------------------------------------*/
 
-
-        /*--------------------------------------------------*/
-        /*Button events*/
-        public void InsertButton_Click(object sender, RoutedEventArgs e)
-        {
-            _model.changeState(new InsertState());
-            UpdateStatusBar();
-            _editorBox.Focus();
-        }
-
-        public void ReadOnlyButton_Click(object sender, RoutedEventArgs e)
-        {
-            _model.changeState(new ReadOnlyState());
-            UpdateStatusBar();
-            _editorBox.Focus();
-        }
-
-        public void OverwriteButton_Click(object sender, RoutedEventArgs e)
-        {
-            _model.changeState(new OverwriteState());
-            UpdateStatusBar();
-            _editorBox.Focus();
-        }
-        /*--------------------------------------------------*/
-
-
         /*--------------------------------------------------*/
         /*Update view and caret functions*/
         private void UpdateEditorBox()
-        { 
+        {
             _editorBox.Text = _model.Text;
             _editorBox.Focus();
         }
@@ -455,14 +403,14 @@ namespace TextEditor.Controler
 
             // Move to the same column on the target line (clamped to its length)
             int targetLineStart = _editorBox.GetCharacterIndexFromLineIndex(targetLine);
-            int targetLineLength = _editorBox.GetLineLength(targetLine) - 1;   
-           
+            int targetLineLength = _editorBox.GetLineLength(targetLine) - 1;
+
             int newIndex = targetLineStart + Math.Min(column, targetLineLength);
 
             // Update model + view
             UpdateEditorBox();
             _editorBox.CaretIndex = newIndex;
-            
+
 
             UpdateCaretPossition();
             UpdateStatusBar();
@@ -477,15 +425,168 @@ namespace TextEditor.Controler
                 textColor = Brushes.Red;
                 if (_model.SelectionStart != _model.SelectionEnd)
                 {
-                    stateString += $"\t[{_model.SelectionStart} - {_model.SelectionEnd}]";
+                    stateString += $" [{_model.SelectionStart}-{_model.SelectionEnd}]";
                 } else
                 {
-                    stateString += $"\t[]";
+                    stateString += $" []";
                 }
             }
             _stateLabel.Content = stateString;
             _stateLabel.Foreground = textColor;
+
+            if(_model.FilePath != null)
+            {
+                _fileLabel.Content = $"File: {_model.FilePath}";
+            } else
+            {
+                _fileLabel.Content = "File: Untitled";
+            }
+
             _caretLabel.Content = $"Caret: {_editorBox.CaretIndex}";
+            
+        }
+        /*--------------------------------------------------*/
+
+        /*--------------------------------------------------*/
+        /* Menu commands */
+        public void OpenFileMenu_Click(object sender, RoutedEventArgs e)
+        {
+            _command = new OpenCommand(_model, _historyManager);
+            _command.Execute();
+            UpdateEditorBox();
+            UpdateStatusBar();
+        }
+
+        public void SaveFileMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (_model.FilePath != null)
+            {
+                _command = new SaveCommand(_model, false);
+                _command.Execute();
+                UpdateStatusBar();
+            }
+        }
+
+        public void SaveAsFileMenu_Click(object sender, RoutedEventArgs e)
+        {
+            _command = new SaveCommand(_model, true);
+            _command.Execute();
+            UpdateStatusBar();
+        }
+
+        public void CopyMenu_Click(object sender, RoutedEventArgs e)
+        {
+            Copy();
+        }
+
+        public void PasteMenu_Click(object sender, RoutedEventArgs e)
+        {
+            Paste(_editorBox.CaretIndex);
+        }
+
+        public void CutMenu_Click(object sender, RoutedEventArgs e)
+        {
+            Cut(_editorBox.CaretIndex);
+        }
+
+        public void ReadOnlyMenu_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeToReadOnly();
+        }
+
+        public void InsertMenu_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeToInsert();
+        }
+
+        public void OverwriteMenu_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeToOverwrite();
+        }
+        /*--------------------------------------------------*/
+
+        /*--------------------------------------------------*/
+        /* Copy paste cut undo redo funtions */
+        private void Copy()
+        {
+            _command = new CopyCommand(_model, _historyManager);
+            _command.Execute();
+            if (_model.getState() is HighlightState)
+            {
+                _model.changeState(new InsertState());
+            }
+            _editorBox.Focus();
+        }
+
+        private void Cut(int caret)
+        {
+            _command = new CutCommand(_model, _historyManager);
+            _command.Execute();
+            UpdateEditorBox();
+            _editorBox.CaretIndex = caret;
+            UpdateCaretPossition();
+            if (_model.getState() is HighlightState)
+            {
+                _model.changeState(new InsertState());
+            }
+            _editorBox.Focus();
+        }
+
+        private void Paste(int caret)
+        {
+            _command = new PasteCommand(_model, _historyManager);
+            _command.Execute();
+            UpdateEditorBox();
+            _editorBox.CaretIndex = caret + Clipboard.GetText().Length;
+            UpdateCaretPossition();
+            if (_model.getState() is HighlightState)
+            {
+                _model.changeState(new InsertState());
+            }
+            UpdateStatusBar();
+            _editorBox.Focus();
+        }
+
+        private void Undo()
+        {
+            _command.Undo();
+            UpdateEditorBox();
+            _editorBox.CaretIndex = _model.CaretPosition;
+            isSelecting = false;
+            UpdateStatusBar();
+            _editorBox.Focus();
+        }
+
+        private void Redo()
+        {
+            _command.Redo();
+            UpdateEditorBox();
+            _editorBox.CaretIndex = _model.CaretPosition;
+            isSelecting = false;
+            UpdateStatusBar();
+            UpdateStatusBar();
+            _editorBox.Focus();
+        }
+
+        private void ChangeToReadOnly()
+        {
+            _model.changeState(new ReadOnlyState());
+            UpdateStatusBar();
+            _editorBox.Focus();
+        }
+
+        private void ChangeToInsert()
+        {
+            _model.changeState(new InsertState());
+            UpdateStatusBar();
+            _editorBox.Focus();
+        }
+
+        private void ChangeToOverwrite()
+        {
+            _model.changeState(new OverwriteState());
+            UpdateStatusBar();
+            _editorBox.Focus();
         }
         /*--------------------------------------------------*/
     }

@@ -30,19 +30,12 @@ namespace TextEditor.Command
         }
         public void Undo()
         {
-            if (_history.CanUndo)
-            {
-                _before = _history.Undo(_before!);
-                _textEditor.Restore(_before!);
-            }
+            UndoRedoHelper.Undo(_textEditor, _history);
         }
+
         public void Redo()
         {
-            if (_history.CanRedo)
-            {
-                _before = _history.Redo(_before!);
-                _textEditor.Restore(_before!);
-            }
+            UndoRedoHelper.Redo(_textEditor, _history);
         }
     }
 }

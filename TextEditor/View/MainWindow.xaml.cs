@@ -22,19 +22,24 @@ namespace TextEditor
         public MainWindow()
         {
             InitializeComponent();
-            controller = new TextEditorController(EditorBox, EditorStateLabel, CaretPositionLabel);
+            controller = new TextEditorController(EditorBox, EditorStateLabel, CaretPositionLabel, FilePathLabel);
             EditorBox.PreviewTextInput += controller.EditorBox_PreviewTextInput;
             EditorBox.PreviewKeyDown += controller.EditorBox_PreviewKeyDown;
             EditorBox.PreviewMouseDown += controller.EditorBox_PreviewMouseDown;
             EditorBox.PreviewMouseMove += controller.EditorBox_PreviewMouseMove;
             EditorBox.PreviewMouseUp += controller.EditorBox_PreviewMouseUp;
-            //EditorBox.MouseDown += controller.EditorBox_PreviewMouseDown;
-            //EditorBox.MouseMove += controller.EditorBox_PreviewMouseMove;
-            //EditorBox.MouseUp += controller.EditorBox_PreviewMouseUp;
 
-            InsertButton.Click += controller.InsertButton_Click;
-            ReadOnlyButton.Click += controller.ReadOnlyButton_Click;
-            OverwriteButton.Click += controller.OverwriteButton_Click;
+            OpenFileMenu.Click += controller.OpenFileMenu_Click;
+            SaveFileMenu.Click += controller.SaveFileMenu_Click;
+            SaveAsFileMenu.Click += controller.SaveAsFileMenu_Click;
+
+            CopyMenu.Click += controller.CopyMenu_Click;
+            PasteMenu.Click += controller.PasteMenu_Click;
+            CutMenu.Click += controller.CutMenu_Click;
+
+            InsertMenu.Click += controller.InsertMenu_Click; 
+            ReadOnlyMenu.Click += controller.ReadOnlyMenu_Click; 
+            OverwriteMenu.Click += controller.OverwriteMenu_Click;
         }
 
         

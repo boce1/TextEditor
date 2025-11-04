@@ -20,6 +20,7 @@ namespace TextEditor.Model
             ? Text.Substring(Math.Min(SelectionStart, SelectionEnd),
                              Math.Abs(SelectionEnd - SelectionStart))
             : string.Empty;
+        public string? FilePath { get; set; } = null;
 
         public TextEditorModel(IState state)
         {
@@ -65,7 +66,7 @@ namespace TextEditor.Model
 
         public TextEditorMemento Save()
         {
-            return new TextEditorMemento(Text, CaretPosition, SelectionStart, SelectionEnd, _state);
+            return new TextEditorMemento(Text, CaretPosition, SelectionStart, SelectionEnd, _state, FilePath);
         }
 
         public void Restore(TextEditorMemento memento)
@@ -75,6 +76,7 @@ namespace TextEditor.Model
             SelectionStart = memento.SelectionStart;
             SelectionEnd = memento.SelectionEnd;
             _state = memento.State;
+            FilePath = memento.FilePath;
         }
     }
 }

@@ -14,14 +14,16 @@ namespace TextEditor.Memento
         public int SelectionStart { get; }
         public int SelectionEnd { get; }
         public IState State { get; }
+        public string? FilePath { get; set; } = null;
 
-        public TextEditorMemento(string text, int caret, int selStart, int selEnd, IState state)
+        public TextEditorMemento(string text, int caret, int selStart, int selEnd, IState state, string? filePath)
         {
             Text = text;
             CaretPosition = caret;
             SelectionStart = selStart;
             SelectionEnd = selEnd;
             State = state;
+            FilePath = filePath;
         }
     }
 }
