@@ -18,7 +18,7 @@ namespace TextEditor.Model
         public bool HasSelection => SelectionStart != SelectionEnd;
         public string SelectedText => HasSelection // readonly property is calculated everytime its accessed
             ? Text.Substring(Math.Min(SelectionStart, SelectionEnd),
-                             Math.Abs(SelectionEnd - SelectionStart))
+                             Math.Min(Math.Abs(SelectionEnd - SelectionStart), Text.Length))
             : string.Empty;
         public string? FilePath { get; set; } = null;
 

@@ -24,7 +24,7 @@ namespace TextEditor.State
             int pos = Math.Min(_textEditor.Text.Length, _textEditor.CaretPosition + input.Length);
             string after = _textEditor.Text.Substring(pos); // rest of text
             _textEditor.Text = before + input + after;
-            _textEditor.CaretPosition++;
+            // _textEditor.CaretPosition++;
             
         }
 

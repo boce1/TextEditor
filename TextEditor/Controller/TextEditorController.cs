@@ -30,6 +30,7 @@ namespace TextEditor.Controler
         private Label _fileLabel;
         private HistoryManager _historyManager;
         private bool areLeftRightKeysPressed = false;
+        private bool areUpDownKeysPressed = false;
 
         private int HighlighPosition;
         public TextEditorController(TextBox editorBox, Label stateLabel, Label caretLabel, Label fileLabel)
@@ -90,6 +91,7 @@ namespace TextEditor.Controler
         {
             if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Down || e.Key == Key.Up) // check if these keys are pressed, because pressing other keys move the caret
             {
+                e.Handled = true;
                 if (_model.getState().GetType() != typeof(HighlightState))
                 {
                     _model.SelectionStart = _model.SelectionEnd = _editorBox.CaretIndex;
@@ -113,14 +115,13 @@ namespace TextEditor.Controler
                         break;
                     case Key.Down:
                     case Key.Up:
-                        e.Handled = true;
                         UpdateCaretVertically(e.Key == Key.Up);
                         _model.SelectionEnd = _editorBox.CaretIndex;
                         HighlighPosition = _model.SelectionStart;
+                        areUpDownKeysPressed = true;
                         break;
                 }
 
-                e.Handled = true;
                 return;
             }
         }
@@ -272,7 +273,10 @@ namespace TextEditor.Controler
                 case Key.Up:
                 case Key.Down:
                     e.Handled = true;
-                    UpdateCaretVertically(e.Key == Key.Up);
+                    if(!areUpDownKeysPressed)
+                    {
+                        UpdateCaretVertically(e.Key == Key.Up);
+                    }
                     break;
             }
             if ((e.Key == Key.Left || e.Key == Key.Right) && !areLeftRightKeysPressed)
@@ -288,6 +292,7 @@ namespace TextEditor.Controler
                 return;
             }
             areLeftRightKeysPressed = false;
+            areUpDownKeysPressed = false;
         }
 
         /*--------------------------------------------------*/
@@ -334,7 +339,7 @@ namespace TextEditor.Controler
             if (movePos < 0) return;
 
             _model.SelectionEnd = movePos;
-            if(_model.SelectionStart > _model.SelectionEnd)
+            if(_model.SelectionStart > _model.SelectionEnd - 1)
             {
                 _model.SelectionEnd--;
                 HighlighPosition = Math.Max(0, _model.SelectionEnd);
@@ -354,7 +359,6 @@ namespace TextEditor.Controler
         public void EditorBox_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             isSelecting = false;
-            _editorBox.SelectionStart = _editorBox.SelectionStart;
             _editorBox.SelectionLength = _model.SelectedText.Length;
 
             if (_model.getState() is not HighlightState) // if user choose not to highlight but to move the caret
@@ -382,9 +386,12 @@ namespace TextEditor.Controler
 
         private void UpdateCaretAddedChar(int caret) // needs the parameter in case TextBox gets updated
         {
-            _editorBox.CaretIndex = caret + 1;
-            UpdateCaretPossition();
-            UpdateStatusBar();
+            if(caret < _model.Text.Length)
+            {
+                _editorBox.CaretIndex = caret + 1;
+                UpdateCaretPossition();
+                UpdateStatusBar();
+            }
         }
 
         private void UpdateCaretDeletedChar(int caret)

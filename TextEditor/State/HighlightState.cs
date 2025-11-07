@@ -28,7 +28,7 @@ namespace TextEditor.State
 
             // Replace selected text with input
             string before = _textEditor.Text.Substring(0, start);
-            string after = _textEditor.Text.Substring(end);
+            string after = _textEditor.Text.Substring(Math.Min(end, _textEditor.Text.Length));
 
             _textEditor.Text = before + input + after;
 
@@ -47,7 +47,8 @@ namespace TextEditor.State
             int start = Math.Min(_textEditor.SelectionStart, _textEditor.SelectionEnd);
             int end = Math.Max(_textEditor.SelectionStart, _textEditor.SelectionEnd);
 
-            _textEditor.Text = _textEditor.Text.Remove(start, end - start);
+            int count = Math.Min(end - start, _textEditor.Text.Length - start);
+            _textEditor.Text = _textEditor.Text.Remove(start, count);
             _textEditor.CaretPosition = start;
             _textEditor.SelectionStart = _textEditor.SelectionEnd = start;
 

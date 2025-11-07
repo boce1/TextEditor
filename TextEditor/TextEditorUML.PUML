@@ -1,0 +1,92 @@
+@startuml
+title TextEditor
+
+package "Command" {
+    interface ICommand {
+        +Execute()
+        +Undo()
+        +Redo()
+    }
+
+    class AddTextCommand
+    class CopyCommand
+    class CutCommand
+    class DeleteTextCommand
+    class OpenCommand
+    class PasteCommand
+    class RedoCommand
+    class SaveCommand
+    class UndoCommand
+    class UndoRedoHelper
+
+    ICommand <|-- AddTextCommand
+    ICommand <|-- CopyCommand
+    ICommand <|-- CutCommand
+    ICommand <|-- DeleteTextCommand
+    ICommand <|-- OpenCommand
+    ICommand <|-- PasteCommand
+    ICommand <|-- RedoCommand
+    ICommand <|-- SaveCommand
+    ICommand <|-- UndoCommand
+
+    UndoRedoHelper ..> UndoCommand : assists
+    UndoRedoHelper ..> RedoCommand : assists
+}
+
+package "Controller" {
+    class TextEditorController {
+        -model: TextEditorModel
+        +ExecuteCommand(cmd: ICommand)
+        +OpenFile(path: String)
+        +Save()
+    }
+
+    TextEditorController --> ICommand : executes >
+    TextEditorController --> TextEditorModel : controls >
+}
+
+package "Model" {
+    class TextEditorModel {
+        -state: IState
+        -clipboard: ClipboardManager
+        +GetText(): String
+        +SetText(s: String)
+        +ApplyEdit(e: Edit)
+    }
+
+    TextEditorModel --> IState : has >
+    TextEditorModel ..> ClipboardManager : uses
+}
+
+package "State" {
+    interface IState {
+        +HandleKey(key)
+        +SetMode()
+    }
+
+    class InsertState
+    class OverwriteState
+    class ReadOnlyState
+    class HighlightState
+
+    IState <|-- InsertState
+    IState <|-- OverwriteState
+    IState <|-- ReadOnlyState
+    IState <|-- HighlightState
+}
+
+' Commands operate on the model
+AddTextCommand --> TextEditorModel : modifies >
+DeleteTextCommand --> TextEditorModel : modifies >
+CopyCommand --> TextEditorModel : reads >
+CutCommand --> TextEditorModel : modifies >
+PasteCommand --> TextEditorModel : modifies >
+OpenCommand --> TextEditorModel : loads >
+SaveCommand --> TextEditorModel : saves >
+
+note left
+Files: Command/*, Controller/TextEditorController.cs,
+Model/TextEditorModel.cs, State/*
+end note
+
+@enduml
