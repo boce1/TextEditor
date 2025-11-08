@@ -1,5 +1,156 @@
-@startuml
-title TextEditor
+@startuml TextEditor
+title TextEditor UML Diagram
+skinparam linetype ortho
+skinparam packageStyle rectangle
+package "View" {
+    class MainWindow {
+        -controller: TextEditorController
+        +MainWindow()
+        +EditorBox: TextBox
+        +EditorStateLabel: Label
+        +CaretPositionLabel: Label
+        +FilePathLabel: Label
+        +OpenFileMenu: MenuItem
+        +SaveFileMenu: MenuItem
+        +SaveAsFileMenu: MenuItem
+        +CopyMenu : MenuItem
+        +PasteMenu : MenuItem
+        +CutMenu : MenuItem
+        +InsertMenu : MenuItem 
+        +ReadOnlyMenu : MenuItem 
+        +OverwriteMenu : MenuItem
+        +UndoMenu : MenuItem
+        +RedoMenu : MenuItem
+    }
+}
+
+package "Memento" {
+    class TextEditorMemento {
+        +Text: string
+        +CaretPosition: int
+        +SelectionStart: int
+        +SelectionEnd: int
+        +State: IState
+        +FilePath: string?
+    }
+
+    class HistoryManager {
+        -_undoStack: Stack<TextEditorMemento>
+        -_redoStack: Stack<TextEditorMemento>
+        +CanUndo(): bool
+        +CanRedo(): bool
+        +Save(TextEditorMemento)
+        +Undo(current: TextEditorMemento): TextEditorMemento?
+        +Redo(current: TextEditorMemento): TextEditorMemento?
+    }
+
+    HistoryManager o-- TextEditorMemento
+}
+
+package "Controller" {
+    class TextEditorController {
+        -_model: TextEditorModel
+        -_editorBox: TextBox
+        -_command: ICommand
+        -_stateLabel: Label
+        -_caretLabel: Label
+        -_fileLabel: Label
+        -_historyManager: HistoryManager
+        -isSelecting: bool
+        -areLeftRightKeysPressed: bool
+        -areUpDownKeysPressed: bool
+        -HighlighPosition: int
+
+        +TextEditorController(editorBox: TextBox, stateLabel: Label, caretLabel: Label, fileLabel: Label)
+        
+        ' Event Handlers
+        +EditorBox_PreviewTextInput(sender: object, e: TextCompositionEventArgs)
+        +EditorBox_PreviewKeyDown(sender: object, e: KeyEventArgs)
+        +EditorBox_PreviewMouseDown(sender: object, e: MouseButtonEventArgs)
+        +EditorBox_PreviewMouseMove(sender: object, e: MouseEventArgs)
+        +EditorBox_PreviewMouseUp(sender: object, e: MouseButtonEventArgs)
+        
+        ' Menu Event Handlers
+        +OpenFileMenu_Click(sender: object, e: RoutedEventArgs)
+        +SaveFileMenu_Click(sender: object, e: RoutedEventArgs)
+        +SaveAsFileMenu_Click(sender: object, e: RoutedEventArgs)
+        +CopyMenu_Click(sender: object, e: RoutedEventArgs)
+        +PasteMenu_Click(sender: object, e: RoutedEventArgs)
+        +CutMenu_Click(sender: object, e: RoutedEventArgs)
+        +UndoMenu_Click(sender: object, e: RoutedEventArgs)
+        +RedoMenu_Click(sender: object, e: RoutedEventArgs)
+        +ReadOnlyMenu_Click(sender: object, e: RoutedEventArgs)
+        +InsertMenu_Click(sender: object, e: RoutedEventArgs)
+        +OverwriteMenu_Click(sender: object, e: RoutedEventArgs)
+        
+        ' Private Methods
+        -HandleCtrlShortcuts(e: KeyEventArgs, caret: int)
+        -HandleShiftControls(e: KeyEventArgs)
+        -HandleSpecialKeys(e: KeyEventArgs, caret: int)
+        -UpdateEditorBox()
+        -UpdateCaretPosition()
+        -UpdateCaretAddedChar(caret: int)
+        -UpdateCaretDeletedChar(caret: int)
+        -UpdateCaretVertically(moveUp: bool)
+        -UpdateStatusBar()
+        -Copy()
+        -Cut(caret: int)
+        -Paste(caret: int)
+        -Undo()
+        -Redo()
+        -ChangeToReadOnly()
+        -ChangeToInsert()
+        -ChangeToOverwrite()
+    }
+}
+
+package "Model" {
+    class TextEditorModel {
+        -_state: IState
+        -_filePath: string
+        +Text: string
+        +CaretPosition: int
+        +SelectionStart: int
+        +SelectionEnd: int
+        +FilePath: string
+        +HasUnsavedChanges: bool
+        +GetText(): string
+        +SetText(s: string)
+        +SetFilePath(path: string)
+        +GetFilePath(): string
+        +Save(): TextEditorMemento
+        +Restore(m: TextEditorMemento)
+        +getState(): IState
+        +changeState(state: IState)
+    }
+}
+
+package "State" {
+    interface IState {
+        +Type(input: string): void
+        +Delete(): void
+        +Copy(): void
+        +Paste(): void
+        +Cut(): void
+    }
+
+    class InsertState {
+        -_textEditor: TextEditorModel
+        +setContext(textEditor: TextEditorModel): void
+    }
+    class OverwriteState {
+        -_textEditor: TextEditorModel
+        +setContext(textEditor: TextEditorModel): void
+    }
+    class ReadOnlyState {
+        -_textEditor: TextEditorModel
+        +setContext(textEditor: TextEditorModel): void
+    }
+    class HighlightState {
+        -_textEditor: TextEditorModel
+        +setContext(textEditor: TextEditorModel): void
+    }
+}
 
 package "Command" {
     interface ICommand {
@@ -8,85 +159,110 @@ package "Command" {
         +Redo()
     }
 
-    class AddTextCommand
-    class CopyCommand
-    class CutCommand
-    class DeleteTextCommand
-    class OpenCommand
-    class PasteCommand
-    class RedoCommand
-    class SaveCommand
-    class UndoCommand
-    class UndoRedoHelper
-
-    ICommand <|-- AddTextCommand
-    ICommand <|-- CopyCommand
-    ICommand <|-- CutCommand
-    ICommand <|-- DeleteTextCommand
-    ICommand <|-- OpenCommand
-    ICommand <|-- PasteCommand
-    ICommand <|-- RedoCommand
-    ICommand <|-- SaveCommand
-    ICommand <|-- UndoCommand
-
-    UndoRedoHelper ..> UndoCommand : assists
-    UndoRedoHelper ..> RedoCommand : assists
-}
-
-package "Controller" {
-    class TextEditorController {
-        -model: TextEditorModel
-        +ExecuteCommand(cmd: ICommand)
-        +OpenFile(path: String)
-        +Save()
+    class AddTextCommand {
+        -_textEditor: TextEditorModel
+        -_text: string
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
     }
 
-    TextEditorController --> ICommand : executes >
-    TextEditorController --> TextEditorModel : controls >
-}
-
-package "Model" {
-    class TextEditorModel {
-        -state: IState
-        -clipboard: ClipboardManager
-        +GetText(): String
-        +SetText(s: String)
-        +ApplyEdit(e: Edit)
+    class DeleteTextCommand {
+        -_textEditor: TextEditorModel
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
     }
 
-    TextEditorModel --> IState : has >
-    TextEditorModel ..> ClipboardManager : uses
-}
-
-package "State" {
-    interface IState {
-        +HandleKey(key)
-        +SetMode()
+    class CopyCommand {
+        -_textEditor: TextEditorModel
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
     }
 
-    class InsertState
-    class OverwriteState
-    class ReadOnlyState
-    class HighlightState
+    class CutCommand {
+        -_textEditor: TextEditorModel
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
+    }
 
-    IState <|-- InsertState
-    IState <|-- OverwriteState
-    IState <|-- ReadOnlyState
-    IState <|-- HighlightState
+    class PasteCommand {
+        -_textEditor: TextEditorModel
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
+    }
+
+    class OpenCommand {
+        -_textEditor: TextEditorModel
+        -_before: TextEditorMemento?
+        -_history: HistoryManager
+    }
+
+    class SaveCommand {
+        -_textEditor: TextEditorModel
+        -_isSaveAs: bool
+    }
+
+    class UndoCommand {
+        -_textEditor: TextEditorModel
+        -_history: HistoryManager
+    }
+
+    class RedoCommand {
+        -_textEditor: TextEditorModel
+        -_history: HistoryManager
+    }
+
+    class UndoRedoHelper {
+        {static} +Redo(TextEditorModel, HistoryManager)
+        {static} +Undo(TextEditorModel, HistoryManager)
+    }
+
+    AddTextCommand ..> HistoryManager : uses
+    DeleteTextCommand ..> HistoryManager : uses
+    CopyCommand ..> HistoryManager : uses
+    CutCommand ..> HistoryManager : uses
+    PasteCommand ..> HistoryManager : uses
+    OpenCommand ..> HistoryManager : uses
+    UndoCommand ..> HistoryManager : uses
+    RedoCommand ..> HistoryManager : uses
+
+    AddTextCommand ..> UndoRedoHelper : calls static Undo/Redo
+    DeleteTextCommand ..> UndoRedoHelper : calls static Undo/Redo
+    CopyCommand ..> UndoRedoHelper : calls static Undo/Redo
+    CutCommand ..> UndoRedoHelper : calls static Undo/Redo
+    PasteCommand ..> UndoRedoHelper : calls static Undo/Redo
+    OpenCommand ..> UndoRedoHelper : calls static Undo/Redo
+    UndoCommand ..> UndoRedoHelper : calls static Undo/Redo
+    RedoCommand ..> UndoRedoHelper : calls static Undo/Redo
 }
 
-' Commands operate on the model
-AddTextCommand --> TextEditorModel : modifies >
-DeleteTextCommand --> TextEditorModel : modifies >
-CopyCommand --> TextEditorModel : reads >
-CutCommand --> TextEditorModel : modifies >
-PasteCommand --> TextEditorModel : modifies >
-OpenCommand --> TextEditorModel : loads >
-SaveCommand --> TextEditorModel : saves >
+' Inter-package relationships
+View --> Controller : uses
+Controller --> Model : manages
+Controller --> Command : executes
+Model --> State : has
+Model --> Memento : creates
+Command ..> Model : modifies
+Command ..> Memento : uses
+State --> Model : modifies
 
-note left
-Files: Command/*, Controller/TextEditorController.cs,
-Model/TextEditorModel.cs, State/*
-end note
+' Class relationships within packages
+IState <|.. InsertState
+IState <|.. OverwriteState
+IState <|.. ReadOnlyState
+IState <|.. HighlightState
+
+ICommand <|.. AddTextCommand
+ICommand <|.. DeleteTextCommand
+ICommand <|.. CopyCommand
+ICommand <|.. CutCommand
+ICommand <|.. PasteCommand
+ICommand <|.. OpenCommand
+ICommand <|.. SaveCommand
+ICommand <|.. UndoCommand
+ICommand <|.. RedoCommand
+
+MainWindow *-- TextEditorController
+TextEditorController *-- TextEditorModel
+TextEditorController *-- HistoryManager
 
 @enduml
