@@ -24,7 +24,7 @@ namespace TextEditor.Command
         {
             _before = _textEditor.Save();
             _textEditor.Copy();
-            if (_textEditor.getState() is not ReadOnlyState)
+            if (_textEditor.SelectedText != string.Empty)
             {
                 _history.Save(_before);
             }
