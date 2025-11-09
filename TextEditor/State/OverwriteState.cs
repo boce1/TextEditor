@@ -23,21 +23,13 @@ namespace TextEditor.State
             string before = _textEditor.Text.Substring(0, _textEditor.CaretPosition); // to the caret
             int pos = Math.Min(_textEditor.Text.Length, _textEditor.CaretPosition + input.Length);
             string after = _textEditor.Text.Substring(pos); // rest of text
-            _textEditor.Text = before + input + after;
-            // _textEditor.CaretPosition++;
-            
+            _textEditor.Text = before + input + after; 
         }
 
         public void Delete()
         {
-            if (_textEditor.CaretPosition <= 0 || string.IsNullOrEmpty(_textEditor.Text))
-                return; // Nothing to delete
-
-            // Split into parts before and after the character to delete
-            string before = _textEditor.Text.Substring(0, _textEditor.CaretPosition - 1);
-            string after = _textEditor.Text.Substring(_textEditor.CaretPosition);
-
-            _textEditor.Text = before + after;
+            _textEditor.changeState(new InsertState());
+            _textEditor.Delete();
         }
 
         public void Copy()
@@ -49,6 +41,7 @@ namespace TextEditor.State
         {
             string pasteText = Clipboard.GetText();
             _textEditor.Type(pasteText);
+            _textEditor.changeState(new InsertState());
         }
 
         public void Cut()

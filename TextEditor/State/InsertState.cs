@@ -22,7 +22,6 @@ namespace TextEditor.State
             string before = _textEditor.Text.Substring(0, _textEditor.CaretPosition); // to the caret
             string after = _textEditor.Text.Substring(_textEditor.CaretPosition); // rest of text
             _textEditor.Text = before + input + after;
-            //_textEditor.CaretPosition++;
         }
 
         public void Delete()

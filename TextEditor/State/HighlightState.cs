@@ -37,6 +37,7 @@ namespace TextEditor.State
 
             // Clear selection after typing
             _textEditor.SelectionStart = _textEditor.CaretPosition = _textEditor.SelectionEnd;
+            _textEditor.changeState(new InsertState());
         }
 
         public void Delete()
@@ -52,7 +53,7 @@ namespace TextEditor.State
             _textEditor.CaretPosition = start;
             _textEditor.SelectionStart = _textEditor.SelectionEnd = start;
 
-            //_textEditor.changeState(new InsertState());
+            _textEditor.changeState(new InsertState());
         }
 
         public void Copy()
@@ -61,6 +62,7 @@ namespace TextEditor.State
             {
                 Clipboard.SetText(_textEditor.SelectedText);
             }
+            _textEditor.changeState(new InsertState());
         }
 
         public void Paste()
@@ -68,7 +70,6 @@ namespace TextEditor.State
             Delete();
             _textEditor.changeState(new InsertState());
             _textEditor.Type(Clipboard.GetText());
-            _textEditor.changeState(new HighlightState());
         }
 
         public void Cut()
@@ -78,6 +79,7 @@ namespace TextEditor.State
 
             Copy();
             Delete();
+            _textEditor.changeState(new InsertState());
         }
     }
 }

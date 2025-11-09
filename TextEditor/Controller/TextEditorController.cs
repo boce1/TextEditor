@@ -61,7 +61,6 @@ namespace TextEditor.Controler
                 _editorBox.CaretIndex = HighlighPosition + 1;
                 UpdateCaretPossition();
                 UpdateStatusBar();
-                _model.changeState(new InsertState());
             }
             else
             {
@@ -92,9 +91,9 @@ namespace TextEditor.Controler
             if (e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Down || e.Key == Key.Up) // check if these keys are pressed, because pressing other keys move the caret
             {
                 e.Handled = true;
-                if (_model.getState().GetType() != typeof(HighlightState))
+                if (_model.getState().GetType() != typeof(HighlightState)) // its in if bacese overwriting selecting positions
                 {
-                    _model.SelectionStart = _model.SelectionEnd = _editorBox.CaretIndex;
+                    _model.SelectionStart = _model.SelectionEnd = _editorBox.CaretIndex; // when selection change to highlight state
                     _model.changeState(new HighlightState());
                     HighlighPosition = _editorBox.CaretIndex;
                 }
@@ -191,7 +190,6 @@ namespace TextEditor.Controler
                         _editorBox.CaretIndex = HighlighPosition;
                         UpdateCaretPossition();
                         UpdateStatusBar();
-                        _model.changeState(new InsertState());
                     }
                     else
                     {
@@ -209,7 +207,6 @@ namespace TextEditor.Controler
                         _editorBox.CaretIndex = HighlighPosition;
                         UpdateCaretPossition();
                         UpdateStatusBar();
-                        _model.changeState(new InsertState());
                     }
                     else
                     {
@@ -247,7 +244,6 @@ namespace TextEditor.Controler
                             _editorBox.CaretIndex = HighlighPosition;
                             UpdateCaretPossition();
                             UpdateStatusBar();
-                            _model.changeState(new InsertState());
                         }
                         else
                         {
@@ -279,11 +275,11 @@ namespace TextEditor.Controler
                     }
                     break;
             }
-            if ((e.Key == Key.Left || e.Key == Key.Right) && !areLeftRightKeysPressed)
+            if (((e.Key == Key.Left || e.Key == Key.Right) && !areLeftRightKeysPressed) ||
+                ((e.Key == Key.Up || e.Key == Key.Down) && !areUpDownKeysPressed)) // if pressed without shift, change to insert
             {
                 _model.SelectionStart = _model.SelectionEnd = _model.CaretPosition;
-                //if((_model.getState() is not InsertState) && (_model.getState() is not OverwriteState))
-                if (_model.getState() is HighlightState)
+                if (_model.getState() is HighlightState) 
                 {
                     _model.changeState(new InsertState());
                     UpdateStatusBar();
@@ -300,11 +296,8 @@ namespace TextEditor.Controler
         // When mouse is pressed — begin selection
         public void EditorBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (_model.getState() is HighlightState) // if user choose not to highlight but to move the caret
-            {
-                _model.changeState(new InsertState());
-                UpdateStatusBar();
-            }
+            _model.changeState(new InsertState());
+            UpdateStatusBar();
 
             //_editorBox.Text += " ";
 
@@ -360,12 +353,7 @@ namespace TextEditor.Controler
         {
             isSelecting = false;
             _editorBox.SelectionLength = _model.SelectedText.Length;
-
-            if (_model.getState() is not HighlightState) // if user choose not to highlight but to move the caret
-            {
-                //_model.changeState(new InsertState());
-                UpdateStatusBar();
-            }
+            UpdateStatusBar();
             e.Handled = true;
         }
         /*--------------------------------------------------*/
@@ -546,10 +534,6 @@ namespace TextEditor.Controler
         {
             _command = new CopyCommand(_model, _historyManager);
             _command.Execute();
-            if (_model.getState() is HighlightState)
-            {
-                _model.changeState(new InsertState());
-            }
             _editorBox.Focus();
         }
 
@@ -560,10 +544,6 @@ namespace TextEditor.Controler
             UpdateEditorBox();
             _editorBox.CaretIndex = caret;
             UpdateCaretPossition();
-            if (_model.getState() is HighlightState)
-            {
-                _model.changeState(new InsertState());
-            }
             _editorBox.Focus();
         }
 
@@ -574,10 +554,6 @@ namespace TextEditor.Controler
             UpdateEditorBox();
             _editorBox.CaretIndex = caret + Clipboard.GetText().Length;
             UpdateCaretPossition();
-            if (_model.getState() is HighlightState)
-            {
-                _model.changeState(new InsertState());
-            }
             UpdateStatusBar();
             _editorBox.Focus();
         }
