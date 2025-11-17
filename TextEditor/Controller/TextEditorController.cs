@@ -52,11 +52,12 @@ namespace TextEditor.Controler
         {
             int caret = _editorBox.CaretIndex;
             UpdateCaretPossition();
+            IState prevState = _model.getState();
             _command = new AddTextCommand(_model, e.Text, _historyManager);
             _command.Execute();
             UpdateEditorBox();
             e.Handled = true;
-            if (_model.getState() is HighlightState)
+            if (prevState is HighlightState)
             {
                 _editorBox.CaretIndex = HighlighPosition + 1;
                 UpdateCaretPossition();
@@ -178,6 +179,7 @@ namespace TextEditor.Controler
 
         private void HandleSpecialKeys(KeyEventArgs e, int caret)
         {
+            IState prevState = _model.getState();
             switch (e.Key)
             {
                 case Key.Back:
@@ -185,7 +187,7 @@ namespace TextEditor.Controler
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
-                    if (_model.getState() is HighlightState)
+                    if (prevState is HighlightState)
                     {
                         _editorBox.CaretIndex = HighlighPosition;
                         UpdateCaretPossition();
@@ -202,7 +204,7 @@ namespace TextEditor.Controler
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
-                    if (_model.getState() is HighlightState)
+                    if (prevState is HighlightState)
                     {
                         _editorBox.CaretIndex = HighlighPosition;
                         UpdateCaretPossition();
@@ -220,7 +222,7 @@ namespace TextEditor.Controler
                     _command.Execute();
                     UpdateEditorBox();
                     e.Handled = true;
-                    if (_model.getState() is HighlightState)
+                    if (prevState is HighlightState)
                     {
                         _editorBox.CaretIndex = HighlighPosition + 1;
                         UpdateCaretPossition();
@@ -239,7 +241,7 @@ namespace TextEditor.Controler
                         _command = new DeleteTextCommand(_model, _historyManager);
                         _command.Execute();
                         UpdateEditorBox();
-                        if (_model.getState() is HighlightState)
+                        if (prevState is HighlightState)
                         {
                             _editorBox.CaretIndex = HighlighPosition;
                             UpdateCaretPossition();
@@ -279,7 +281,7 @@ namespace TextEditor.Controler
                 ((e.Key == Key.Up || e.Key == Key.Down) && !areUpDownKeysPressed)) // if pressed without shift, change to insert
             {
                 _model.SelectionStart = _model.SelectionEnd = _model.CaretPosition;
-                if (_model.getState() is HighlightState) 
+                if (prevState is HighlightState) 
                 {
                     _model.changeState(new InsertState());
                     UpdateStatusBar();
@@ -336,6 +338,9 @@ namespace TextEditor.Controler
             {
                 _model.SelectionEnd--;
                 HighlighPosition = Math.Max(0, _model.SelectionEnd);
+            } else
+            {
+                HighlighPosition = _model.SelectionStart;
             }
             _model.SelectionStart = Math.Min(_model.SelectionStart, _model.Text.Length);
             _model.SelectionEnd = Math.Min(_model.SelectionEnd, _model.Text.Length);
