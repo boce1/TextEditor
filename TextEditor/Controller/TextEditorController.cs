@@ -339,7 +339,10 @@ namespace TextEditor.Controler
             }
             _model.SelectionStart = Math.Min(_model.SelectionStart, _model.Text.Length);
             _model.SelectionEnd = Math.Min(_model.SelectionEnd, _model.Text.Length);
-
+            if(_model.SelectionEnd < 0)
+            {
+                _model.SelectionEnd = 0;
+            }
             // Visually show selection in the TextBox
             _editorBox.SelectionStart = Math.Min(_model.SelectionStart, _model.SelectionEnd);
             _editorBox.SelectionLength = Math.Abs(_model.SelectionEnd - _model.SelectionStart);
@@ -464,12 +467,10 @@ namespace TextEditor.Controler
 
         public void SaveFileMenu_Click(object sender, RoutedEventArgs e)
         {
-            if (_model.FilePath != null)
-            {
-                _command = new SaveCommand(_model, false);
-                _command.Execute();
-                UpdateStatusBar();
-            }
+            _command = new SaveCommand(_model, false);
+            _command.Execute();
+            UpdateStatusBar();
+            _editorBox.Focus();
         }
 
         public void SaveAsFileMenu_Click(object sender, RoutedEventArgs e)
@@ -477,6 +478,7 @@ namespace TextEditor.Controler
             _command = new SaveCommand(_model, true);
             _command.Execute();
             UpdateStatusBar();
+            _editorBox.Focus();
         }
 
         public void CopyMenu_Click(object sender, RoutedEventArgs e)
