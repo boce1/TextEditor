@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using TextEditor.Memento;
 using TextEditor.Model;
 
 namespace TextEditor.Command
@@ -14,11 +15,13 @@ namespace TextEditor.Command
     {
         private readonly TextEditorModel _textEditor;
         private readonly bool _isSaveAs;
+        private readonly HistoryManager _history;
 
-        public SaveCommand(TextEditorModel textEditor, bool isSaveAs = false)
+        public SaveCommand(TextEditorModel textEditor, HistoryManager history, bool isSaveAs = false)
         {
             _textEditor = textEditor;
             _isSaveAs = isSaveAs;
+            _history = history;
         }
 
         public void Execute()
@@ -56,10 +59,14 @@ namespace TextEditor.Command
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        public void Redo()
+        {
+            UndoRedoHelper.Redo(_textEditor, _history);
+        }
 
-        // Save doesn’t change editor state so these are intentionally left empty
-        public void Undo() { }
-
-        public void Redo() { }
+        public void Undo()
+        {
+            UndoRedoHelper.Undo(_textEditor, _history);
+        }
     }
 }

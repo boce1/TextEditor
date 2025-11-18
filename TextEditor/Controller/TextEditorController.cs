@@ -166,8 +166,11 @@ namespace TextEditor.Controler
                     break;
                 case Key.S: // ctrl + S
                     e.Handled = true; // Disable default
-                    _command = new SaveCommand(_model);
+                    _command = new SaveCommand(_model, _historyManager);
                     _command.Execute();
+                    UpdateStatusBar();
+                    _fileLabel.Focus();
+                    _editorBox.Focus();
                     break;
                 default:
                     // Other Ctrl+key combos disabled
@@ -472,17 +475,19 @@ namespace TextEditor.Controler
 
         public void SaveFileMenu_Click(object sender, RoutedEventArgs e)
         {
-            _command = new SaveCommand(_model, false);
+            _command = new SaveCommand(_model, _historyManager, false);
             _command.Execute();
             UpdateStatusBar();
+            _fileLabel.Focus();
             _editorBox.Focus();
         }
 
         public void SaveAsFileMenu_Click(object sender, RoutedEventArgs e)
         {
-            _command = new SaveCommand(_model, true);
+            _command = new SaveCommand(_model, _historyManager, true);
             _command.Execute();
             UpdateStatusBar();
+            _fileLabel.Focus();
             _editorBox.Focus();
         }
 
